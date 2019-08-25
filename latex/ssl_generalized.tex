@@ -1,0 +1,130 @@
+\documentclass[12pt]{article}
+\usepackage{amsmath, amssymb, amsthm, float, fullpage, graphicx, multirow,parskip, subcaption, setspace}
+\usepackage{comment}
+\usepackage{url}
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric, positioning}
+\usetikzlibrary{quotes, angles}
+\usepackage{rotating}
+\usepackage{hyperref}
+\usepackage{natbib}
+
+\definecolor{PennRed}{RGB}{152, 30 50}
+\definecolor{PennBlue}{RGB}{0, 44, 119}
+\definecolor{PennGreen}{RGB}{94, 179,70}
+\definecolor{PennViolet}{RGB}{141, 76, 145}
+\definecolor{PennSkyBlue}{RGB}{14, 118, 188}
+\definecolor{PennOrange}{RGB}{243, 117, 58}
+\definecolor{PennBrightRed}{RGB}{223,82, 78}
+
+
+\hypersetup{pdfborder = {0 0 0.5 [3 3]}, colorlinks = true, linkcolor = PennBrightRed, citecolor = PennSkyBlue}
+
+\bibliographystyle{apalike}
+
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{acknowledgement}[theorem]{Acknowledgement}
+\newtheorem{algorithm}[theorem]{Algorithm}
+\newtheorem{axiom}[theorem]{Axiom}
+\newtheorem{case}[theorem]{Case}
+\newtheorem{claim}[theorem]{Claim}
+\newtheorem{conclusion}[theorem]{Conclusion}
+\newtheorem{condition}[theorem]{Condition}
+\newtheorem{conjecture}[theorem]{Conjecture}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{criterion}[theorem]{Criterion}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{example}[theorem]{Example}
+\newtheorem{exercise}[theorem]{Exercise}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{notation}[theorem]{Notation}
+\newtheorem{problem}[theorem]{Problem}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{remark}[theorem]{Remark}
+\newtheorem{solution}[theorem]{Solution}
+\newtheorem{summary}[theorem]{Summary}
+
+
+\DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator*{\argmin}{arg\,min}
+
+\newcommand\numberthis{\addtocounter{equation}{1}\tag{\theequation}}
+
+\def\bbeta{\boldsymbol{\beta}}
+\def\bgamma{\boldsymbol{\gamma}}
+
+\def\E{\mathbb{E}}
+\def\P{\mathbb{P}}
+
+\title{Spike-and-Slab Generalized LASSO}
+\author{Deshpande, Moran, Tansey}
+
+\begin{document}
+
+
+\section{Setup}
+
+Consider the normal means problem: for $i = 1, \ldots, n,$ we observe $y_{i} \sim N(\beta_{i},\sigma^{2}).$
+Further suppose that we have a graph $G = (V,\mathcal{E})$ on $n$ vertices with vertex set $V = \left\{1,2, \ldots, n \right\}$ and edge set $\mathcal{E} \subset V \times V.$
+For each directed edge $e$ from $i$ to $j$ we denote $e^{+}$ and $e^{-}$ to be the sink (i) and source (j), respectively.
+We would like to encourage sparsity in the set $\left\{\beta_{e^{+}} - \beta_{e^{-}}: e \in \mathcal{E}\right\}.$
+
+To this end, we propose the (possibly improper!) \emph{spike-and-slab generalized LASSO} prior which is given by
+\begin{equation}
+\label{eq:ssgl_prior}
+\pi(\bbeta \mid \bgamma) \propto \prod_{e \in \mathcal{E}}{\exp\left\{-\left(\lambda_{0}(1 - \gamma_{e}) + \lambda_{1}\gamma_{e}\right) \lvert \beta_{e^{+}} - \beta_{e^{-}} \rvert \right\}}
+\end{equation}
+where $\bgamma = \left\{\gamma_{e} : e \in \mathcal{E}\right\} \subset \left\{0,1\right\}^{\lvert E \rvert}$ is a collection of binary indicators.
+We model $\gamma_{e} \sim \text{Bernoulli}(\theta)$ independently and complete our prior specification with $\theta \sim \text{Beta}(a,b).$
+
+We want to solve
+$$
+(\hat{\beta}, \hat{\sigma}^{2}, \hat{\theta}) = \argmin_{\beta, \sigma^{2}, \theta}\left\{\frac{1}{2\sigma^{2}}\sum_{i = 1}^{n}{(y_{i} - \beta_{i})^{2}} - \log{\pi(\beta, \theta)} - \log{\pi(\sigma^{2})}\right\}
+$$
+
+To this end, we use an EM algorithm in which we minimize the surrogate objective 
+$$
+\E_{\bgamma \mid \cdot}\left[\frac{1}{2\sigma^{2}}\sum_{i = 1}^{n}{(y_{i} - \beta_{i})^{2}} - \log{\pi(\beta, \theta, \bgamma, \sigma^{2})} \mid y, \beta, \theta, \sigma^{2}\right]
+$$
+where the expectation is taken over the conditional posterior of $\bgamma$ given all other quantities.
+This expectation is particularly easy to compute: the separability of the prior in~\eqref{eq:ssgl_prior} and the prior independence of the $\gamma_{e}$'s renders the indicators independent \textit{a posteriori} so that
+$$
+\E[\gamma_{e} \mid \beta, \theta, \sigma^{2}, y] = p_{e}^{\star} :=  \frac{\lambda_{1}\theta \text{e}^{-\lambda_{1}\lvert \beta_{e^{+}} - \beta_{e^{-}}\rvert}}{\lambda_{1}\theta \text{e}^{-\lambda_{1}\lvert \beta_{e^{+}} - \beta_{e^{-}}\rvert} + \lambda_{0}(1 - \theta) \text{e}^{-\lambda_{0}\lvert \beta_{e^{+}} - \beta_{e^{-}}\rvert}}
+$$ 
+
+Let $\lambda^{\star}_{e} = \lambda_{0}(1 - p^{\star}_{e}) + \lambda_{1}p^{\star}_{e}.$ 
+In the M-step we minimize a surrogate objective that can be decomposed as $Q_{1}(\beta, \sigma^{2}) + Q_{2}(\theta)$ where
+\begin{align*}
+Q_{1}(\beta, \sigma^{2}) &= \frac{1}{2\sigma^{2}}\sum_{i = 1}^{n}{(y_{i} - \beta_{i})^{2}} + \sum_{e \in \mathcal{E}}{\lambda^{\star}_{e}\lvert \beta_{e^{+}} - \beta_{e^{-}}\rvert} - \log{\pi(\sigma^{2})} \\
+Q_{2}(\theta) &= -\left(a - 1 + \sum_{e \in \mathcal{E}}{p^{\star}_{e}}\right)\log{\theta} - \left(b + \lvert \mathcal{E} \rvert - 1 - \sum_{e \in \mathcal{E}}{p^{\star}_{e}}\right)\log{(1 - \theta)}
+\end{align*}
+
+Minimizing  $Q_{2}$ can be done in close form -- the optimal value is $(a + \sum_{e}{p^{\star}_{e}})/(a + b + \lvert \mathcal{E} - 2).$
+Minimizing $Q_{1}$ is somewhat more delicate.
+\textcolor{red}{[skd]: If we place an inverse-gamma prior on $\sigma^{2},$ I'm not sure that the objective is convex as a function of $\beta$ and $\sigma^{2}$. In case it isn't, we can resort to conditional updates -- update $\beta$ fixing $\sigma^{2}$ at its previous value and then updating $\sigma^{2}$ fixing $\beta$ at its new value.
+If we iterate between these steps repeatedly until some convergence criterion is met, we have a full Expectation -- Conditional Maximization algorithm.
+However, to keep the computational cost down, it's probably enough to do a single sweep over $\beta$ and $\sigma^{2}$.}
+
+If we fix $\sigma$ and decompose the graph into trails $t$ then we need to solve
+$$
+\argmin_{\bbeta}\left\{\frac{1}{2}\sum_{i = 1}^{n}{(y_{i} - \beta_{i})^{2}} + \sum_{t}{\sum_{e \in t}{\sigma^{2}\lambda^{\star}_{e}\lvert \beta_{e^{+}} - \beta_{e^{-}}\rvert}}\right\}
+$$
+
+In trail $t$ let the edges be $e_{1}, \ldots, e_{n_{t}}$ where $e^{-}_{k+1} = e^{+}_{k}$ (i.e. the end of the current edge is the start of the next edge along the trail). 
+For each trail $t$ we introduce a total of $2n_{t}$ slack variables $z_{2k - 1,t} = \lambda^{\star}_{e_{k}}\beta_{e^{-}_{k}}$ and $z_{2k,t} = \lambda^{\star}_{e_{k}}\beta_{e_{k}^{+}}.$
+Then the minimization problem is
+\begin{align*}
+\argmin_{\bbeta, z} &~ \left\{\frac{1}{2}\sum_{i = 1}^{n}{(y_{i} - \beta_{i})^{2}} + \sigma^{2}\sum_{t}\sum_{k = 1}^{n_{t}}{\lvert z_{2k,t} - z_{2k} \rvert}\right\} \\
+~ & ~ \\
+\text{subject to} &~ \quad z_{2k-1,t} = \lambda^{\star}_{e_{k,t}}\beta_{e_{k,t}^{+}} \\
+~ & ~ \quad z_{2k,t} = \lambda^{\star}_{e_{k,t}}\beta_{e_{k,t}^{-}} \quad \text{for all $k,t$} 
+\end{align*}
+
+This can now be solved using ADMM.
+
+\end{document}
+
+
+
+
