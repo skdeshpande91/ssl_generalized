@@ -1,2 +1,4 @@
 latex/*.synctex.gz
 latex/*.log
+latex/*.out
+latex/*.aux
